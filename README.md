@@ -1,2 +1,3 @@
 # App-panini-album
 App para llevar una cuenta de las figuritas que tengo tanto pegadas como repetidas
+git push -u origin claude/panini-sticker-album-app-KxarX
