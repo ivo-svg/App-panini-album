@@ -7,8 +7,8 @@ interface Props {
   team: Team;
   collected: boolean;
   duplicateCount: number;
-  onToggle: () => void;
-  onRemove: () => void;
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
   isNew?: boolean;
 }
 
@@ -34,7 +34,7 @@ const StickerSlot = memo(function StickerSlot({
     <div
       className={`
         relative rounded-lg overflow-hidden cursor-pointer select-none
-        transition-all duration-200 group
+        transition-[transform,box-shadow] duration-150 group
         hover:-translate-y-0.5 hover:shadow-lg
         ${animating ? 'scale-110' : 'scale-100'}
       `}
@@ -49,7 +49,7 @@ const StickerSlot = memo(function StickerSlot({
         aspectRatio: '3/4',
         minHeight: '88px',
       }}
-      onClick={onToggle}
+      onClick={() => onToggle(sticker.id)}
     >
       {/* FOIL overlay */}
       {sticker.isFoil && (
@@ -86,7 +86,7 @@ const StickerSlot = memo(function StickerSlot({
       {collected && (
         <button
           className="absolute top-0.5 right-0.5 z-10 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center transition-all opacity-60 group-hover:opacity-100 hover:scale-125 hover:bg-red-600"
-          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          onClick={(e) => { e.stopPropagation(); onRemove(sticker.id); }}
           title="Quitar figurita"
         >
           <X size={9} strokeWidth={3} />

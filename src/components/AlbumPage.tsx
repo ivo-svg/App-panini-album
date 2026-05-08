@@ -1,4 +1,4 @@
-import { forwardRef, memo, useMemo } from 'react';
+import { forwardRef, memo } from 'react';
 import type { Team } from '../lib/albumData';
 import StickerSlot from './StickerSlot';
 
@@ -11,12 +11,23 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
+// Only re-render this team's page when one of its own stickers changed
+function areEqual(prev: Props, next: Props): boolean {
+  if (prev.team !== next.team) return false;
+  if (prev.onToggle !== next.onToggle || prev.onRemove !== next.onRemove) return false;
+  for (const { id } of prev.team.stickers) {
+    if (!!prev.collected[id] !== !!next.collected[id]) return false;
+    if ((prev.duplicates[id] ?? 0) !== (next.duplicates[id] ?? 0)) return false;
+    if (prev.newIds.has(id) !== next.newIds.has(id)) return false;
+  }
+  return true;
+}
+
 const AlbumPage = memo(forwardRef<HTMLDivElement, Props>(
+
   ({ team, collected, duplicates, newIds, onToggle, onRemove }, ref) => {
-    const teamCollected = useMemo(
-      () => team.stickers.filter((s) => collected[s.id]).length,
-      [team.stickers, collected]
-    );
+    let teamCollected = 0;
+    for (const { id } of team.stickers) if (collected[id]) teamCollected++;
     const teamTotal = team.stickers.length;
     const pct = Math.round((teamCollected / teamTotal) * 100);
 
@@ -100,8 +111,8 @@ const AlbumPage = memo(forwardRef<HTMLDivElement, Props>(
                 team={team}
                 collected={!!collected[sticker.id]}
                 duplicateCount={duplicates[sticker.id] ?? 0}
-                onToggle={() => onToggle(sticker.id)}
-                onRemove={() => onRemove(sticker.id)}
+                onToggle={onToggle}
+                onRemove={onRemove}
                 isNew={newIds.has(sticker.id)}
               />
             ))}
@@ -121,7 +132,7 @@ const AlbumPage = memo(forwardRef<HTMLDivElement, Props>(
       </div>
     );
   }
-));
+), areEqual);
 
 AlbumPage.displayName = 'AlbumPage';
 export default AlbumPage;
