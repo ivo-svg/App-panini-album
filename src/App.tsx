@@ -186,7 +186,7 @@ export default function App() {
         {tab === 'album' && (
           <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-5 [column-fill:_balance]">
             {TEAMS.map((team) => (
-              <div key={team.code} className="break-inside-avoid mb-5">
+              <div key={team.code} className="break-inside-avoid mb-5" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 480px' }}>
                 <AlbumPage
                   ref={(el) => { if (el) pageRefs.current.set(team.code, el); else pageRefs.current.delete(team.code); }}
                   team={team}

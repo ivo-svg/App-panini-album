@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type { Sticker, Team } from '../lib/albumData';
 import { X, Users, Shield, Star } from 'lucide-react';
 
@@ -17,62 +17,61 @@ const StickerSlot = memo(function StickerSlot({
 }: Props) {
   const [animating, setAnimating] = useState(false);
   const [showShimmer, setShowShimmer] = useState(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     if (isNew) {
       setAnimating(true);
       setShowShimmer(true);
-      const t1 = setTimeout(() => setAnimating(false), 500);
-      const t2 = setTimeout(() => setShowShimmer(false), 1000);
-      return () => { clearTimeout(t1); clearTimeout(t2); };
+      const t1 = setTimeout(() => setAnimating(false), 400);
+      const t2 = setTimeout(() => setShowShimmer(false), 900);
+      timers.current.push(t1, t2);
     }
+    return () => { timers.current.forEach(clearTimeout); timers.current = []; };
   }, [isNew]);
 
   const borderColor = collected ? '#22c55e' : team.primaryColor;
 
   return (
     <div
-      className={`
-        relative rounded-lg overflow-hidden cursor-pointer select-none
-        transition-[transform,box-shadow] duration-150 group
-        hover:-translate-y-0.5 hover:shadow-lg
-        ${animating ? 'scale-110' : 'scale-100'}
-      `}
+      className={`relative rounded-lg overflow-hidden cursor-pointer select-none group
+        hover:-translate-y-0.5
+        ${animating ? 'scale-110' : 'scale-100'}`}
       style={{
         border: `2px ${collected ? 'solid' : 'dashed'} ${borderColor}`,
         background: collected
           ? `${team.primaryColor}33`
-          : sticker.isFoil
-          ? 'linear-gradient(135deg, #f5eed4 0%, #fff9e6 25%, #f5eed4 50%, #fff9e6 75%, #f5eed4 100%)'
           : '#f5eed4',
         boxShadow: collected ? `0 0 8px ${team.primaryColor}44` : undefined,
         aspectRatio: '3/4',
         minHeight: '88px',
+        transition: 'transform 150ms ease',
+        willChange: 'transform',
       }}
       onClick={() => onToggle(sticker.id)}
     >
-      {/* FOIL overlay */}
+      {/* FOIL shimmer — GPU-composited via transform */}
       {sticker.isFoil && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(135deg, transparent 0%, rgba(255,215,0,0.35) 30%, rgba(255,249,196,0.5) 50%, rgba(255,215,0,0.35) 70%, transparent 100%)',
-            backgroundSize: '200% 200%',
-            animation: 'shimmerBg 3s linear infinite',
-            opacity: collected ? 0.5 : 0.25,
-          }}
-        />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ opacity: collected ? 0.55 : 0.3 }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(105deg, transparent 25%, rgba(255,215,0,0.7) 50%, rgba(255,249,196,0.5) 55%, transparent 75%)',
+            animation: 'shimmerBg 2.5s linear infinite',
+            willChange: 'transform',
+          }} />
+        </div>
       )}
 
       {/* Paste shimmer */}
       {showShimmer && (
-        <div
-          className="absolute inset-0 pointer-events-none z-20"
-          style={{
-            background: 'linear-gradient(105deg, transparent 20%, rgba(255,215,0,0.8) 50%, transparent 80%)',
-            animation: 'shimmerSlide 0.8s ease-out forwards',
-          }}
-        />
+        <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(105deg, transparent 20%, rgba(255,215,0,0.85) 50%, transparent 80%)',
+            animation: 'shimmerSlide 0.7s ease-out forwards',
+            willChange: 'transform',
+          }} />
+        </div>
       )}
 
       {/* Duplicate badge */}
@@ -82,10 +81,11 @@ const StickerSlot = memo(function StickerSlot({
         </div>
       )}
 
-      {/* Remove button — always visible on collected, more prominent */}
+      {/* Remove button */}
       {collected && (
         <button
-          className="absolute top-0.5 right-0.5 z-10 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center transition-all opacity-60 group-hover:opacity-100 hover:scale-125 hover:bg-red-600"
+          className="absolute top-0.5 right-0.5 z-10 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center opacity-60 group-hover:opacity-100"
+          style={{ transition: 'opacity 120ms ease' }}
           onClick={(e) => { e.stopPropagation(); onRemove(sticker.id); }}
           title="Quitar figurita"
         >
