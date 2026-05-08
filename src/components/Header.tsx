@@ -1,6 +1,6 @@
 import { type SyncStatus } from '../hooks/useAlbum';
 import { TOTAL_STICKERS } from '../lib/albumData';
-import { Download, Upload, RotateCcw } from 'lucide-react';
+import { Download, Upload, RotateCcw, Home } from 'lucide-react';
 import { useRef } from 'react';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
   onExport: () => void;
   onImport: (json: string) => void;
   onReset: () => void;
+  onHome?: () => void;
 }
 
 const syncDot: Record<SyncStatus, string> = {
@@ -23,7 +24,7 @@ const syncLabel: Record<SyncStatus, string> = {
   offline: 'Sin conexión',
 };
 
-export default function Header({ collectedCount, progress, syncStatus, onExport, onImport, onReset }: Props) {
+export default function Header({ collectedCount, progress, syncStatus, onExport, onImport, onReset, onHome }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +64,15 @@ export default function Header({ collectedCount, progress, syncStatus, onExport,
 
           {/* Actions */}
           <div className="flex items-center gap-2 flex-wrap justify-end">
+            {onHome && (
+              <button
+                onClick={onHome}
+                title="Ir al inicio"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFD700]/10 hover:bg-[#FFD700]/20 border border-[#FFD700]/30 text-[#FFD700] text-xs font-barlow font-semibold transition-all"
+              >
+                <Home size={14} /> Inicio
+              </button>
+            )}
             <button
               onClick={onExport}
               title="Exportar JSON"

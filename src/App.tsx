@@ -4,12 +4,16 @@ import SearchBar from './components/SearchBar';
 import AlbumPage from './components/AlbumPage';
 import DuplicatesList from './components/DuplicatesList';
 import SuggestionsPanel from './components/SuggestionsPanel';
+import StatsPanel from './components/StatsPanel';
+import FixturePanel from './components/FixturePanel';
+import LandingPage from './components/LandingPage';
 import Toast, { type ToastMessage } from './components/Toast';
 import { useAlbum } from './hooks/useAlbum';
-import { TEAMS, getStickerById } from './lib/albumData';
-import { BookOpen, Copy, MessageSquare } from 'lucide-react';
+import { TEAMS, getStickerById, TOTAL_STICKERS } from './lib/albumData';
+import { BookOpen, Copy, MessageSquare, BarChart2, Calendar } from 'lucide-react';
 
-type Tab = 'album' | 'duplicates' | 'suggestions';
+type Tab = 'album' | 'duplicates' | 'suggestions' | 'stats' | 'fixture';
+type Screen = 'landing' | 'app';
 
 let toastIdCounter = 0;
 
@@ -20,6 +24,7 @@ export default function App() {
     resetAlbum, exportJSON, importJSON,
   } = useAlbum();
 
+  const [screen, setScreen] = useState<Screen>('landing');
   const [tab, setTab] = useState<Tab>('album');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -38,6 +43,7 @@ export default function App() {
   // Atajo "/" para enfocar el buscador
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (screen !== 'app') return;
       const tag = (document.activeElement as HTMLElement)?.tagName;
       if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
         e.preventDefault();
@@ -46,7 +52,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [screen]);
 
   const markNew = useCallback((id: string) => {
     setNewIds((prev) => new Set(prev).add(id));
@@ -92,6 +98,11 @@ export default function App() {
     }, 100);
   }, []);
 
+  const handleLandingEnter = useCallback((section: 'album' | 'fixture') => {
+    setScreen('app');
+    setTab(section);
+  }, []);
+
   const duplicateTotal = Object.values(state.duplicates).reduce((a, b) => a + b, 0);
 
   if (loading) {
@@ -107,16 +118,31 @@ export default function App() {
     );
   }
 
+  if (screen === 'landing') {
+    return (
+      <>
+        <LandingPage
+          onEnter={handleLandingEnter}
+          collectedCount={collectedCount}
+          totalStickers={TOTAL_STICKERS}
+        />
+        <Toast toasts={toasts} onRemove={removeToast} />
+      </>
+    );
+  }
+
+  const TABS = [
+    { id: 'album' as Tab,      label: 'Álbum',    icon: BookOpen   },
+    { id: 'fixture' as Tab,    label: 'Fixture',  icon: Calendar   },
+    { id: 'stats' as Tab,      label: 'Stats',    icon: BarChart2  },
+    { id: 'duplicates' as Tab, label: `Repetidas${duplicateTotal > 0 ? ` (${duplicateTotal})` : ''}`, icon: Copy },
+    { id: 'suggestions' as Tab,label: 'Chat',     icon: MessageSquare },
+  ];
+
   return (
     <div
       className="min-h-screen"
-      style={{
-        background: 'linear-gradient(160deg, #000d2e 0%, #001440 40%, #000d2e 100%)',
-        backgroundImage: `
-          linear-gradient(160deg, #000d2e 0%, #001440 40%, #000d2e 100%),
-          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='2' cy='2' r='1' fill='rgba(255,255,255,0.025)'/%3E%3C/svg%3E")
-        `,
-      }}
+      style={{ background: 'linear-gradient(160deg, #000d2e 0%, #001440 40%, #000d2e 100%)' }}
     >
       <Header
         collectedCount={collectedCount}
@@ -125,6 +151,7 @@ export default function App() {
         onExport={exportJSON}
         onImport={importJSON}
         onReset={resetAlbum}
+        onHome={() => setScreen('landing')}
       />
 
       <SearchBar
@@ -136,16 +163,12 @@ export default function App() {
 
       {/* Tabs */}
       <div className="sticky top-0 z-20 bg-[#000d2e]/95 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 flex">
-          {([
-            { id: 'album' as Tab, label: 'Álbum', icon: BookOpen },
-            { id: 'duplicates' as Tab, label: `Repetidas${duplicateTotal > 0 ? ` (${duplicateTotal})` : ''}`, icon: Copy },
-            { id: 'suggestions' as Tab, label: 'Sugerencias', icon: MessageSquare },
-          ]).map(({ id, label, icon: Icon }) => (
+        <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto scrollbar-hide">
+          {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`flex items-center gap-2 px-5 py-3 font-barlow font-semibold text-sm border-b-2 transition-all ${
+              className={`flex items-center gap-2 px-4 py-3 font-barlow font-semibold text-sm border-b-2 transition-all whitespace-nowrap flex-shrink-0 ${
                 tab === id
                   ? 'border-[#FFD700] text-[#FFD700]'
                   : 'border-transparent text-white/50 hover:text-white/80 hover:border-white/20'
@@ -177,12 +200,10 @@ export default function App() {
             ))}
           </div>
         )}
-        {tab === 'duplicates' && (
-          <DuplicatesList duplicates={state.duplicates} onDecrement={decrementDuplicate} />
-        )}
-        {tab === 'suggestions' && (
-          <SuggestionsPanel />
-        )}
+        {tab === 'fixture'    && <FixturePanel />}
+        {tab === 'stats'      && <StatsPanel collected={state.collected} duplicates={state.duplicates} />}
+        {tab === 'duplicates' && <DuplicatesList duplicates={state.duplicates} onDecrement={decrementDuplicate} />}
+        {tab === 'suggestions'&& <SuggestionsPanel />}
       </main>
 
       <Toast toasts={toasts} onRemove={removeToast} />

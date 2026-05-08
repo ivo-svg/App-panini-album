@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, memo, useMemo } from 'react';
 import type { Team } from '../lib/albumData';
 import StickerSlot from './StickerSlot';
 
@@ -11,88 +11,87 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-const AlbumPage = forwardRef<HTMLDivElement, Props>(
+const AlbumPage = memo(forwardRef<HTMLDivElement, Props>(
   ({ team, collected, duplicates, newIds, onToggle, onRemove }, ref) => {
-    const teamCollected = team.stickers.filter((s) => collected[s.id]).length;
+    const teamCollected = useMemo(
+      () => team.stickers.filter((s) => collected[s.id]).length,
+      [team.stickers, collected]
+    );
     const teamTotal = team.stickers.length;
     const pct = Math.round((teamCollected / teamTotal) * 100);
 
-    // Darken primary color for header gradient
-    const isDark = team.primaryColor === '#000000' || team.primaryColor === '#001440';
+    // Determine text color for header
+    const isVeryDark = ['#000000', '#001440', '#003087', '#002395', '#012169', '#002868', '#003580'].includes(team.primaryColor);
+    const headerTextColor = isVeryDark ? '#FFD700' : '#FFFFFF';
 
     return (
       <div
         ref={ref}
         id={`team-${team.code}`}
-        className="album-page rounded-xl overflow-hidden shadow-2xl"
+        className="rounded-xl overflow-hidden shadow-2xl"
         style={{
           background: '#f5eed4',
-          boxShadow: `0 8px 32px rgba(0,0,0,0.4), inset 4px 0 0 ${team.primaryColor}`,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.45), inset 4px 0 0 ${team.primaryColor}`,
         }}
       >
-        {/* Page header */}
+        {/* Page header with proper gradient */}
         <div
           className="relative overflow-hidden px-4 py-3"
           style={{
-            background: `linear-gradient(135deg, ${team.primaryColor} 0%, ${team.secondaryColor}88 100%)`,
+            background: `linear-gradient(105deg, ${team.primaryColor} 0%, ${team.primaryColor} 55%, ${team.secondaryColor} 100%)`,
           }}
         >
-          {/* Texture */}
-          <div className="absolute inset-0 opacity-10"
+          {/* Diagonal stripe overlay for depth */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-15"
             style={{
-              backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(255,255,255,0.15) 4px, rgba(255,255,255,0.15) 5px)',
+              backgroundImage: 'repeating-linear-gradient(60deg, transparent, transparent 8px, rgba(255,255,255,0.2) 8px, rgba(255,255,255,0.2) 9px)',
             }}
           />
+          {/* Fade to right so gradient blends */}
+          <div
+            className="absolute inset-y-0 right-0 w-1/3 pointer-events-none"
+            style={{
+              background: `linear-gradient(to right, transparent, ${team.secondaryColor}cc)`,
+            }}
+          />
+
           <div className="relative flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
                 <span
                   className="font-bebas text-2xl tracking-widest drop-shadow"
-                  style={{ color: isDark ? '#FFD700' : 'white', textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
+                  style={{ color: headerTextColor, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
                 >
                   {team.code}
                 </span>
                 <span
-                  className="font-barlow font-semibold text-sm tracking-wide opacity-90"
-                  style={{ color: isDark ? '#FFD700' : 'white' }}
+                  className="font-barlow font-semibold text-sm tracking-wide"
+                  style={{ color: headerTextColor, opacity: 0.9, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
                 >
                   {team.fullName}
                 </span>
               </div>
-              {/* Mini progress */}
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-24 h-1.5 bg-black/20 rounded-full overflow-hidden">
+                <div className="w-24 h-1.5 bg-black/25 rounded-full overflow-hidden">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${pct}%`,
-                      background: isDark ? '#FFD700' : 'rgba(255,255,255,0.9)',
-                    }}
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, background: headerTextColor === '#FFD700' ? '#FFD700' : 'rgba(255,255,255,0.95)' }}
                   />
                 </div>
-                <span
-                  className="text-xs font-barlow font-semibold opacity-80"
-                  style={{ color: isDark ? '#FFD700' : 'white' }}
-                >
+                <span className="text-xs font-barlow font-semibold" style={{ color: headerTextColor, opacity: 0.85 }}>
                   {teamCollected}/{teamTotal}
                 </span>
               </div>
             </div>
-            {/* Accent stripe */}
-            {team.accentColor && team.accentColor !== team.primaryColor && (
-              <div
-                className="w-6 h-10 rounded opacity-80"
-                style={{ background: team.accentColor }}
-              />
+            {team.accentColor && team.accentColor !== team.primaryColor && team.accentColor !== team.secondaryColor && (
+              <div className="w-5 h-10 rounded opacity-90 shadow-inner" style={{ background: team.accentColor }} />
             )}
           </div>
         </div>
 
         {/* Sticker grid */}
-        <div
-          className="p-3"
-          style={{ background: 'linear-gradient(180deg, #f5eed4 0%, #ede6c6 100%)' }}
-        >
+        <div className="p-3" style={{ background: 'linear-gradient(180deg, #f5eed4 0%, #ede6c6 100%)' }}>
           <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             {team.stickers.map((sticker) => (
               <StickerSlot
@@ -109,22 +108,20 @@ const AlbumPage = forwardRef<HTMLDivElement, Props>(
           </div>
         </div>
 
-        {/* Page footer */}
+        {/* Footer */}
         <div
           className="px-4 py-1.5 flex items-center justify-between"
-          style={{ background: team.primaryColor, borderTop: `2px solid ${team.accentColor ?? team.secondaryColor}44` }}
+          style={{ background: team.primaryColor }}
         >
-          <span className="text-[10px] font-barlow text-white/60 tracking-widest uppercase">
-            FIFA World Cup 2026™
-          </span>
-          <span className="text-[10px] font-barlow font-bold text-white/80">
+          <span className="text-[10px] font-barlow text-white/50 tracking-widest uppercase">FIFA World Cup 2026™</span>
+          <span className="text-[10px] font-barlow font-bold" style={{ color: headerTextColor, opacity: 0.8 }}>
             {pct === 100 ? '✓ COMPLETA' : `${pct}%`}
           </span>
         </div>
       </div>
     );
   }
-);
+));
 
 AlbumPage.displayName = 'AlbumPage';
 export default AlbumPage;
